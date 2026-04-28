@@ -1,0 +1,184 @@
+CREATE DATABASE Punto_Farmacia;
+
+USE Punto_Farmacia;
+
+CREATE TABLE tipo_producto (
+id_tipoproducto INT IDENTITY(1,1) PRIMARY KEY,
+tipo_producto VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE unidad_medida (
+id_umedida INT IDENTITY(1,1) PRIMARY KEY,
+unidad_medida VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE categoria_usuarios (
+id_ctg_usuarios INT IDENTITY(1,1) PRIMARY KEY,
+categoria_usuario VARCHAR(30) NOT NULL,
+descripcion VARCHAR(50)
+);
+
+CREATE TABLE metodo_pago (
+id_mpago INT IDENTITY(1,1) PRIMARY KEY,
+metodo_pago VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE dir_proveedores (
+id_DirPro INT IDENTITY(1,1) PRIMARY KEY,
+calle VARCHAR(255),
+ciudad VARCHAR(100),
+estado VARCHAR(100),
+codigo_postal VARCHAR(20),
+pais VARCHAR(100)
+);
+
+CREATE TABLE proveedores (
+id_proveedor INT IDENTITY(1,1) PRIMARY KEY,
+nombre VARCHAR(150),
+telefono VARCHAR(30),
+email VARCHAR(100) UNIQUE,
+id_direccion INT,
+FOREIGN KEY (id_direccion) REFERENCES dir_proveedores(id_DirPro)
+);
+
+CREATE TABLE laboratorios (
+id_laboratorio INT IDENTITY(1,1) PRIMARY KEY,
+nombre VARCHAR(150) NOT NULL UNIQUE,
+telefono VARCHAR(30),
+email VARCHAR(100) UNIQUE
+);
+
+CREATE TABLE categoria_producto (
+id_categoria INT IDENTITY(1,1) PRIMARY KEY,
+nombre_categoria VARCHAR(60) NOT NULL,
+descripcion VARCHAR(100)
+);
+
+CREATE TABLE usuarios_login (
+id_usuarios INT IDENTITY(1,1) PRIMARY KEY,
+ap_paterno VARCHAR(50),
+ap_materno VARCHAR(50),
+nombre VARCHAR(80),
+categoria_usuarios INT,
+fecha_nacimiento DATE,
+email VARCHAR(100) UNIQUE,
+password VARCHAR(60) NOT NULL,
+telefono VARCHAR(20),
+FOREIGN KEY (categoria_usuarios) REFERENCES categoria_usuarios(id_ctg_usuarios)
+);
+
+CREATE TABLE dir_clientes (
+id_Dircli INT IDENTITY(1,1) PRIMARY KEY,
+calle VARCHAR(255),
+ciudad VARCHAR(100),
+estado VARCHAR(100),
+codigo_postal VARCHAR(20),
+pais VARCHAR(100)
+);
+
+CREATE TABLE clientes (
+id_clientes INT IDENTITY(1,1) PRIMARY KEY,
+ap_paterno VARCHAR(50),
+ap_materno VARCHAR(50),
+nombre VARCHAR(80),
+email VARCHAR(100) UNIQUE,
+telefono VARCHAR(20) UNIQUE,
+id_direccion INT,
+FOREIGN KEY (id_direccion) REFERENCES dir_clientes(id_Dircli)
+);
+
+CREATE TABLE productos (
+id_producto INT IDENTITY(1,1) PRIMARY KEY,
+codigo_barras VARCHAR(50) UNIQUE,
+producto VARCHAR(120) NOT NULL,
+id_tipoproducto INT,
+id_umedida INT,
+id_categoria INT,
+precio DECIMAL(12,2) NOT NULL,
+costo DECIMAL(12,2),
+id_laboratorio INT,
+requiere_receta BIT DEFAULT 0,
+FOREIGN KEY (id_laboratorio) REFERENCES laboratorios(id_laboratorio),
+FOREIGN KEY (id_tipoproducto) REFERENCES tipo_producto(id_tipoproducto),
+FOREIGN KEY (id_umedida) REFERENCES unidad_medida(id_umedida),
+FOREIGN KEY (id_categoria) REFERENCES categoria_producto(id_categoria)
+);
+
+CREATE TABLE inventario_lotes (
+id_lote INT IDENTITY(1,1) PRIMARY KEY,
+id_producto INT NOT NULL,
+lote VARCHAR(50) NOT NULL,
+fecha_caducidad DATE NOT NULL,
+cantidad DECIMAL(12,3) NOT NULL,
+costo_unitario DECIMAL(12,2),
+FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+);
+
+CREATE TABLE recetas (
+id_receta INT IDENTITY(1,1) PRIMARY KEY,
+id_cliente INT NOT NULL,
+nombre_doctor VARCHAR(150),
+cedula_profesional VARCHAR(50),
+fecha DATE NOT NULL,
+FOREIGN KEY (id_cliente) REFERENCES clientes(id_clientes)
+);
+
+CREATE TABLE compras (
+id_compra INT IDENTITY(1,1) PRIMARY KEY,
+proveedor_id INT,
+fecha DATETIME DEFAULT GETDATE(),
+subtotal DECIMAL(14,2) DEFAULT 0,
+total DECIMAL(14,2) DEFAULT 0,
+metodo_pago INT,
+FOREIGN KEY (proveedor_id) REFERENCES proveedores(id_proveedor),
+FOREIGN KEY (metodo_pago) REFERENCES metodo_pago(id_mpago)
+);
+
+CREATE TABLE detalle_compras (
+id_detalle_comp INT IDENTITY(1,1) PRIMARY KEY,
+compra_id INT NOT NULL,
+producto_id INT NOT NULL,
+lote VARCHAR(50),
+fecha_caducidad DATE,
+cantidad DECIMAL(12,3) NOT NULL,
+precio_unitario DECIMAL(12,2) NOT NULL,
+total_linea DECIMAL(14,2) NOT NULL,
+FOREIGN KEY (compra_id) REFERENCES compras(id_compra),
+FOREIGN KEY (producto_id) REFERENCES productos(id_producto)
+);
+
+CREATE TABLE estado_venta (
+id_estado INT IDENTITY(1,1) PRIMARY KEY,
+nombre_tipo VARCHAR(30)
+);
+
+CREATE TABLE ventas (
+id_venta INT IDENTITY(1,1) PRIMARY KEY,
+cliente INT,
+usuario INT,
+fecha_compra DATETIME DEFAULT GETDATE(),
+subtotal DECIMAL(14,2) DEFAULT 0,
+descuento_total DECIMAL(14,2) DEFAULT 0,
+tax_total DECIMAL(14,2) DEFAULT 0,
+total DECIMAL(14,2) DEFAULT 0,
+metodopago INT,
+estado INT,
+FOREIGN KEY (cliente) REFERENCES clientes(id_clientes),
+FOREIGN KEY (usuario) REFERENCES usuarios_login(id_usuarios),
+FOREIGN KEY (metodopago) REFERENCES metodo_pago(id_mpago),
+FOREIGN KEY (estado) REFERENCES estado_venta(id_estado)
+);
+
+CREATE TABLE detalle_ventas (
+id_detalle INT IDENTITY(1,1) PRIMARY KEY,
+venta_id INT NOT NULL,
+id_lote INT NOT NULL,
+producto_id INT NOT NULL,
+cantidad DECIMAL(12,3) NOT NULL,
+precio_unitario DECIMAL(12,2) NOT NULL,
+descuento_linea DECIMAL(12,2) DEFAULT 0,
+comentario VARCHAR(255) DEFAULT NULL,
+FOREIGN KEY (id_lote) REFERENCES inventario_lotes(id_lote),
+FOREIGN KEY (venta_id) REFERENCES ventas(id_venta),
+FOREIGN KEY (producto_id) REFERENCES productos(id_producto)
+);
